@@ -1,8 +1,7 @@
 import GitHub from 'github-api'
-import NodeGit from 'nodegit'
-import { stat, mkdir } from 'fs/promises'
+import { cloneGitRepo, indexRepoFolder } from '../utils/git-repos'
 
-export async function buildRepoHandlers() {
+export async function buildRepoHandlers(accountStore) {
   async function handleGetAvailableRepos(ctx) {
     const github = new GitHub({
       token: ctx.session.githubToken
@@ -28,51 +27,35 @@ export async function buildRepoHandlers() {
   async function handleGetConnectedRepos(ctx) {}
 
   async function handleCreateRepoConnection(ctx) {
-    const { repoId, clone_url, repoType } = ctx.query
+    const { repoKey, repoReference, clone_url, repoType } = ctx.query
+
+    const userRepoList = (await accountStore.getItem(
+      `yaz-${ctx.session.yazUserId}`,
+      'repo-list'
+    )) || []
+
+    if(userRepoList.map(r => r.repoKey).indexOf(repoKey) !== -1) {
+      ctx.throw(400, 'Already connected')
+    }
+
     const userId = ctx.session.yazUserId
+    
+    await cloneGitRepo(userId, repoKey, clone_url, ctx.session.githubToken)
+    const repoIndex = await indexRepoFolder(userId, repoKey)    
 
-    const userDirectoryPath = `./data/repos/${userId}`
-    await createFolderIfDoesNotExist(userDirectoryPath)
+    await accountStore.putItem(
+      `yaz-${ctx.session.yazUserId}`,
+      'repo-list',
+      userRepoList.concat({ repoKey, repoReference, clone_url, repoType})
+    )
 
-    const repoDirectoryPath = `${userDirectoryPath}/${repoId}`
-    const repoAlreadyExists = await validDirectoryExists(repoDirectoryPath)
+    await accountStore.putItem(
+      `yaz-${ctx.session.yazUserId}`,
+      `repo-index-${repoKey}`,
+      repoIndex
+    )
 
-    if(repoAlreadyExists) {
-      ctx.status = 409
-      ctx.body = { msg: 'Already exists'}
-      return
-    }
-
-    const cloneOptions = {}
-    cloneOptions.fetchOpts = {
-      callbacks: {
-        certificateCheck: function() { return 0; },
-        credentials: function() {
-          return NodeGit.Cred.userpassPlaintextNew(ctx.session.githubToken, "x-oauth-basic");
-        }
-      }
-    }
-    const repo = await NodeGit.Clone.clone(clone_url, repoDirectoryPath, cloneOptions)    
-
-    ctx.body = {
-      msg: 'Done!'
-    }
-  }
-
-  async function createFolderIfDoesNotExist(path) {
-    const directoryExists = await validDirectoryExists(path)
-    if(!directoryExists) {
-      console.log(`Creating directory "${path}"`)
-      await mkdir(path)
-    }
-  }
-
-  async function validDirectoryExists(path) {
-    try {
-      return (await stat(path)).isDirectory()
-    } catch(err) {
-      return false
-    }
+    ctx.body = repoIndex
   }
 
   return {

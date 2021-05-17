@@ -49,14 +49,13 @@ export async function buildAuthHandlers(accountStore) {
     } else {
       yazProfile = await accountStore.getItem(`yaz-${mappedYazUserId}`, 'basic')
       console.log(`Profile found`)
-      ;(yazProfile.githubProfile = getImportantGitHubProfileFields(
-        githubProfile
-      )),
-        await accountStore.putItem(
-          `yaz-${mappedYazUserId}`,
-          'default-map',
-          yazProfile
-        )
+      yazProfile.githubProfile = getImportantGitHubProfileFields(githubProfile)
+
+      await accountStore.putItem(
+        `yaz-${mappedYazUserId}`,
+        'basic',
+        yazProfile
+      )
       console.log(`Profile updated`)
     }
 
