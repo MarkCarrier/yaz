@@ -19,6 +19,8 @@ export async function buildAppRouter(accountStore) {
 
   const docHandlers = await buildDocHandlers(accountStore)
   router.get('/d/:userId/:repoKey/:docKey', docHandlers.handleGetDoc)
+  router.get('/api/doc/:userId/:repoKey/:docKey/page', docHandlers.handleGetDocPage)
+  router.get('/api/doc/:userId/:repoKey/docs', docHandlers.handleGetDocList)
 
   return router
 }

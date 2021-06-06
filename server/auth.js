@@ -138,8 +138,15 @@ export async function buildAuthHandlers(accountStore) {
   }
 
   async function createNewYazProfile(githubProfile) {
+    const userId = nanoid().slice(0, 5).toLowerCase()
+
+    let existingAccount = await accountStore.getItem(`yaz-${usedId}`,'basic')
+    if(existingAccount) {
+      throw new Exception('Account id collision!')
+    }
+
     const yazProfile = {
-      userId: nanoid(),
+      userId,
       aliases: [nanoid().slice(0, 5).toLowerCase()],
       githubProfile: getImportantGitHubProfileFields(githubProfile),
       name: githubProfile.name,
