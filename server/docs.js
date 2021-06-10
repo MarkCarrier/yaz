@@ -4,10 +4,11 @@ import { createReadStream } from 'fs'
 import marked from 'marked'
 import fm from 'front-matter'
 import stream from 'stream'
+import { nanoid } from 'nanoid'
+import { performance } from 'perf_hooks'
 
 function buildLineStream() {
   const lineStream = new stream.Transform({ objectMode: true })
-  let totalBytes = 0
 
   lineStream._transform = function (chunk, encoding, cb) {
     this._totalBytes = this._totalBytes || 0
@@ -21,7 +22,7 @@ function buildLineStream() {
     var objLines = strData.split('\n')
     this._partialLine = objLines.splice(objLines.length - 1, 1)[0]
     this.push(objLines)
-    console.log(`xtream _transform, pushed ${objLines.length} lines`)
+    //console.log(`Read ${objLines.length} lines`)
 
     return cb(null, chunk + '\n')
     //cb()
@@ -41,9 +42,9 @@ function buildLineStream() {
 async function getPageLines(
   filename,
   startPos = 0,
-  maxLines = 100,
   firstLinePrefix,
-  pageSize = 2 * 1024
+  maxLines = 450,  
+  pageSize = 10 * 1024
 ) {
   return new Promise((resolve, reject) => {
     let pageLines = []
@@ -73,7 +74,7 @@ async function getPageLines(
       }
     })
     readStream.on('close', () => {
-      console.log(`Stream close fired. Read ${lineStream._totalBytes || 0} bytes`)
+      //console.log(`Stream close fired. Read ${lineStream._totalBytes || 0} bytes`)
 
       const reachedEnd = lineStream._totalBytes < pageSize
       if(reachedEnd) pageLines.push(lineStream._partialLine)
@@ -86,7 +87,7 @@ async function getPageLines(
     })
 
     readStream.on('end', () => {
-      console.log(`Stream end fired`)
+      //console.log(`Stream end fired`)
       if (!pageLines.length && firstLinePrefix) pageLines.push(firstLinePrefix)
       resolve({
         pageLines,
@@ -123,12 +124,14 @@ export async function buildDocHandlers(accountStore) {
       start = parseInt(startAt)
     }
 
+    const startTimer = performance.now()
     let pageLines = await getPageLines(
       `./data/repos/${userId}/${repoKey}/${fileInfo.fileName}`,
       start,
-      numLines || 20,
-      nextLineStart || ''
+      nextLineStart || ''      
     )
+    const endTimer = performance.now()
+    console.log(`Read ${pageLines.pageLines.length} lines in ${endTimer - startTimer}ms`)
 
     const next = pageLines.nextLineStart ? `/api/doc/${userId}/${repoKey}/${docKey}/page?startAt=${
       pageLines.endsAt

@@ -1,3 +1,58 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+body {
+  overflow-y: scroll; /* Show vertical scrollbar */
+}
+
+@layer base {
+  h1 {
+    @apply text-4xl;
+    @apply mt-6;
+    @apply font-bold;
+    @apply font-crimson;
+  }
+  h2 {
+    @apply text-2xl;
+    @apply mt-4;
+    @apply font-bold;
+    @apply font-crimson;
+  }
+  h3 {
+    @apply text-2xl;
+    @apply mt-4;
+    @apply font-crimson;
+  }
+  h4 {
+    @apply text-lg;
+    @apply mt-2;
+    @apply font-bold;
+    @apply font-crimson;
+  }
+  h5 {
+    @apply text-lg;
+    @apply mt-2;
+    @apply font-crimson;
+  }
+  hr {
+    @apply my-4;
+  }
+  p {
+    @apply my-3;
+  }
+  ul {
+    @apply list-disc;
+    @apply ml-8;
+  }
+  code {
+    @apply bg-yellow-100;
+    @apply p-1;
+  }
+  blockquote {
+    @apply font-sans;
+    @apply pl-4 ml-2;
+    @apply border-l-4 border-red-400;
+    @apply text-gray-500;
+  }
+}

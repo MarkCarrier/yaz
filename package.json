@@ -4,9 +4,9 @@
   "description": "A tool for writing and sharing text documents",
   "main": "server/start.js",
   "scripts": {
+    "start": "node server/start.js",
     "build": "craco build",
-    "dev": "nodemon -r dotenv/config server/start.js",
-    "dev2": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
+    "dev": "concurrently \"npm run dev:client\" \"npm run dev:server\"",
     "dev:client": "HOST=0.0.0.0 PORT=4410 DANGEROUSLY_DISABLE_HOST_CHECK=true BROWSER=none craco start",
     "dev:server": "nodemon -r dotenv/config server/start.js"
   },
@@ -40,6 +40,7 @@
     "dotenv": "^8.2.0",
     "front-matter": "^4.0.2",
     "github-api": "^3.4.0",
+    "html-react-parser": "^1.2.6",
     "koa": "^2.13.1",
     "koa-router": "^10.0.0",
     "koa-send": "^5.0.1",
@@ -51,6 +52,7 @@
     "nodemon": "^2.0.7",
     "react-router-dom": "^5.2.0",
     "regenerator-runtime": "^0.13.7",
+    "remarkable": "^2.0.1",
     "uuid": "^8.3.2"
   },
   "eslintConfig": {
