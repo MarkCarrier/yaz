@@ -1,14 +1,14 @@
-
-
 export default function DocViewerSection({ section }) {
   return (
-    <div
-      className="doc-section font-mono"
-      style={{ paddingLeft: '1.5em', textIndent: '-1.5em' }}
-      dangerouslySetInnerHTML={createMarkup(section)}
-    >      
-    </div>
+    <section
+      className={`section-${section.startLine}-${section.endLine} ${
+        section.isFrontMatter ? 'hidden' : ''
+      }`}
+      dangerouslySetInnerHTML={createMarkup(section.renderedLines)}
+    ></section>
   )
 }
 
-function createMarkup(section) { return {__html: section}; };
+function createMarkup(rendered) {
+  return { __html: rendered }
+}

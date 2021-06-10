@@ -4,8 +4,8 @@ import { createReadStream } from 'fs'
 import marked from 'marked'
 import fm from 'front-matter'
 import stream from 'stream'
-import { nanoid } from 'nanoid'
 import { performance } from 'perf_hooks'
+import yaml from 'js-yaml'
 
 function buildLineStream() {
   const lineStream = new stream.Transform({ objectMode: true })
@@ -133,15 +133,38 @@ export async function buildDocHandlers(accountStore) {
     const endTimer = performance.now()
     console.log(`Read ${pageLines.pageLines.length} lines in ${endTimer - startTimer}ms`)
 
+    let frontmatter = null
+    if(start === 0 && pageLines.pageLines.length && pageLines.pageLines[0].trim() === '---') {
+      frontmatter = extractFrontMatter(pageLines.pageLines)
+    } else {
+      console.log(`No front matter`)
+    }
+
     const next = pageLines.nextLineStart ? `/api/doc/${userId}/${repoKey}/${docKey}/page?startAt=${
       pageLines.endsAt
     }&nextLineStart=${encodeURIComponent(pageLines.nextLineStart)}` : null
 
     ctx.body = {
       file: fileInfo,
+      frontmatter,
       lines: pageLines.pageLines,
       next
     }
+  }
+
+  function extractFrontMatter(lines) {
+
+    const startStopLines = lines.map((line, idx) => ({ n: idx, line})).filter(l => l.line.trim() === '---')
+    if(startStopLines.length < 2) {
+      console.error(`Front matter end not found`)
+      return null
+    }
+
+    console.log(`Discovered front matter from ${startStopLines[0].n} to ${startStopLines[1].n}`)
+
+    const frontMatter = lines.slice(0, startStopLines[1].n).join("\n")
+    const frontMatterData = yaml.load(frontMatter)
+    return frontMatterData
   }
 
   async function handleGetDocList(ctx) {
