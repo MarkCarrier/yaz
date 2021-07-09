@@ -70,10 +70,10 @@ export default function DockerPicker({ isOpen, onClose, userId, repoKey }) {
           />
         </svg>
       </button>
-      <h2 className="font-bold text-3xl mt-3 mb-5 font-sans">Docs</h2>
+      <h2 className="font-bold text-3xl mt-3 mb-5 font-sans">All Docs</h2>
       {error}
       {index &&
-        Object.keys(index.docs).map((docId) => {
+        Object.keys(index.docs).sort().map((docId) => {
           const doc = index.docs[docId]
           return (
             <Link
