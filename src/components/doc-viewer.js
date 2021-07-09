@@ -3,18 +3,31 @@ import { useState, useEffect } from 'react'
 import { buildSectionsFromNewPage } from '../utils/line-assembler'
 import DocViewerSection from './doc-viewer-section'
 import SmallLoader from './small-loader'
+import DocPicker from './doc-picker'
 
 export default function DocViewer() {
   const [pages, setPages] = useState([])
   const [sections, setSections] = useState([])
   const [error, setError] = useState(null)
+  const [pageStatus, setPageStatus] = useState(null)
+
   const { userId, repoKey, docKey } = useParams()
-  const [reachedEndOfFile, setReachedEndOfFile] = useState(false)
+
+  const [docPickerOpen, setDockPickerOpen] = useState(false)
 
   useEffect(() => {
     async function getPage(url, lineOffset = 0, previousLines = []) {
       const requestOptions = { credentials: 'include' }
       if (!url) url = `/api/doc/${userId}/${repoKey}/${docKey}/page`
+
+      setPageStatus((pageStatus) => ({
+        status: 'fetching',
+        url,
+        userId,
+        repoKey,
+        docKey,
+        lineOffset
+      }))
 
       const response = await fetch(url, requestOptions)
 
@@ -26,26 +39,58 @@ export default function DocViewer() {
           previousLines,
           newPage,
           lineOffset
-        )
-        setSections((sections) => [...sections, ...newSections])
+        )        
+        let updatedSections = newSections
+        if(lineOffset > 0) {
+          updatedSections = [...sections, ...newSections]
+        }
+        setSections((sections) => updatedSections)
         setPages((pages) => [...pages, newPage])
-        if(lineOffset === 0) {
+
+        if (lineOffset === 0) {
           document.title = newPage.frontmatter?.title || newPage.file.fileName
         }
-        if (newPage.next)
+
+        if (newPage.next) {
           getPage(
             newPage.next,
             lineOffset + newPage.lines.length,
             leftOverLines
           )
-        else { 
-          console.log('Got entire doc')
-          setReachedEndOfFile(true)}
+        } else {
+          const [_, tailsSections] = buildSectionsFromNewPage(
+            leftOverLines,
+            null,
+            updatedSections[updatedSections.length - 1].endLine + 1
+          )
+          setSections((sections) => [...updatedSections,...tailsSections])
+
+          setPageStatus((pageStatus) => ({
+            status: 'loaded',
+            url,
+            userId,
+            repoKey,
+            docKey,
+            lineOffset
+          }))
+        }
       }
     }
 
-    if (!pages.length && !error) getPage()
-  }, [pages, error, docKey, repoKey, userId])
+    if (!error) {
+      if (pageStatus == null) {
+        getPage()
+      } else if (
+        pageStatus.userId !== userId ||
+        pageStatus.repoKey !== repoKey ||
+        pageStatus.docKey !== docKey
+      ) {
+        setPages(pages => [])
+        setSections((sections) => [])
+        getPage()
+      }
+    }
+  }, [pages, pageStatus, error, docKey, repoKey, userId])
 
   if (error)
     return (
@@ -55,37 +100,46 @@ export default function DocViewer() {
     )
 
   return (
-    <div className="px-20 pb-32 font-serif max-w-5xl mx-auto">
-      {!reachedEndOfFile && (
+    <div className="mx-auto pb-32 font-serif max-w-5xl px-4">
+      <DocPicker
+        isOpen={docPickerOpen}
+        repoKey={repoKey}
+        userId={userId}
+        onClose={() => setDockPickerOpen(false)}
+      />
+      {(!pageStatus || pageStatus.status === 'fetching') && (
         <div className="fixed top-0 right-0 p-4 z-20">
           <SmallLoader />
         </div>
       )}
-      {!pages.length > 0 && (
-        <div className="font-sans mt-32 text-center text-xl font-bold">
-          Opening document
-        </div>
-      )}
       <div>
-        <div className="pb-6 pt-4 fixed bg-white w-full z-10">
-          {pages.length > 0 && pages[0].frontmatter?.title && (
-            <>
-              <div className="text-4xl font-extrabold">
-                {pages[0].frontmatter.title}
-              </div>
-              <div className="text-xl text-gray-400 font-mono mt-1">
+        <div
+          className="w-full h-20 fixed pb-2 pt-4 z-10 border-b-2 left-0 px-2 cursor-pointer hover:bg-gray-200 bg-white"
+          onClick={() => setDockPickerOpen(!docPickerOpen)}
+        >
+          <div className="max-w-5xl mx-auto">
+            {pages.length > 0 && pages[0].frontmatter?.title && (
+              <>
+                <div className="text-xl font-extrabold">
+                  {pages[0].frontmatter.title}
+                </div>
+                <div className="text-lg text-gray-400 font-mono">
+                  {pages[0].file.fileName}
+                </div>
+              </>
+            )}
+            {pages.length > 0 && !pages[0].frontmatter?.title && (
+              <div className="text-xl font-extrabold">
                 {pages[0].file.fileName}
               </div>
-            </>
-          )}
-          {pages.length > 0 && !pages[0].frontmatter?.title && (
-            <div className="text-4xl font-extrabold">
-                {pages[0].file.fileName}
-              </div>
-          )}
+            )}
+            {!pages.length > 0 && (
+              <div className="text-2xl mt-2 font-extrabold">Fetching Doc</div>
+            )}
+          </div>
         </div>
 
-        <div className="absolute top-24 mr-12 pb-32">
+        <div className="absolute top-24 mt-3 mr-12 pb-32">
           {sections.map((section, idx) => {
             return (
               <DocViewerSection

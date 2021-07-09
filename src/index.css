@@ -56,3 +56,17 @@ body {
     @apply text-gray-500;
   }
 }
+
+
+.ReactModal__Overlay {  
+  transform: translateY(-100%);
+  transition: all 350ms ease-in-out;
+}
+
+.ReactModal__Overlay--after-open {  
+  transform: translateY(0px);
+}
+
+.ReactModal__Overlay--before-close {  
+  transform: translateY(-100%);
+}

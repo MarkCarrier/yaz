@@ -16,13 +16,16 @@ function buildLineStream() {
     this._totalBytes += chunk.length
     var strData = chunk.toString()
 
-    if (this._partialLine) {
+    if (this._partialLine && this._partialLine.length) {
+      //console.log(`Prepending partial line "${this._partialLine}"`)
       strData = this._partialLine + strData
     }
 
     var objLines = strData.split('\n')
     this._partialLine = objLines.splice(objLines.length - 1, 1)[0]
-    this.push(objLines)
+    console.log(`New partial line = "${this._partialLine}"`)
+    
+    this.push({ lines: objLines} )
     //console.log(`Read ${objLines.length} lines`)
 
     return cb(null, chunk + '\n')
@@ -31,7 +34,7 @@ function buildLineStream() {
 
   lineStream._flush = function (cb) {
     if (this._partialLine) {
-      this.push([this._partialLine])
+      this.push({ lines: [this._partialLine] })
     }
 
     this._partialLine = null
@@ -59,13 +62,13 @@ async function getPageLines(
     lineStream.on('readable', () => {
       let lines
       while ((lines = lineStream.read()) && pageLines.length < maxLines) {
-        //console.log(`lineStream readable fired, got ${lines.length} lines`)
         if (!pageLines.length && firstLinePrefix && lines.length) {
           const completedFirstLine = `${firstLinePrefix}${lines[0]}`
           lines = [completedFirstLine, ...lines.slice(1)]
         }
 
-        pageLines = pageLines.concat(lines)
+        if(lines.lines)
+        pageLines = pageLines.concat(lines.lines)
 
         if (pageLines.length >= maxLines) {
           readStream.destroy()
