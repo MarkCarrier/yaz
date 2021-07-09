@@ -40,11 +40,13 @@
     "dotenv": "^8.2.0",
     "front-matter": "^4.0.2",
     "github-api": "^3.4.0",
+    "http-proxy-middleware": "^2.0.1",
     "js-yaml": "^4.1.0",
     "koa": "^2.13.1",
     "koa-router": "^10.0.0",
     "koa-send": "^5.0.1",
     "koa-session": "^6.2.0",
+    "lru-cache": "^6.0.0",
     "luxon": "^1.27.0",
     "marked": "^2.0.3",
     "nanoid": "^3.1.23",
@@ -71,7 +73,6 @@
     ]
   },
   "homepage": "/app/",
-  "proxy": "http://localhost:4411",
   "devDependencies": {
     "@craco/craco": "^6.1.2",
     "autoprefixer": "^9.8.6",

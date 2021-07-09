@@ -38,7 +38,9 @@ export default function DocViewer() {
             lineOffset + newPage.lines.length,
             leftOverLines
           )
-        else setReachedEndOfFile(true)
+        else { 
+          console.log('Got entire doc')
+          setReachedEndOfFile(true)}
       }
     }
 
@@ -47,15 +49,15 @@ export default function DocViewer() {
 
   if (error)
     return (
-      <div className="font-sans mt-32 text-center text-xl font-bold">
+      <div className="font-sans mt-32 text-center text-xl font-bold ">
         {error}
       </div>
     )
 
   return (
-    <div className="px-20 pb-32 font-serif">
+    <div className="px-20 pb-32 font-serif max-w-5xl mx-auto">
       {!reachedEndOfFile && (
-        <div className="fixed top-0 right-0 p-4">
+        <div className="fixed top-0 right-0 p-4 z-20">
           <SmallLoader />
         </div>
       )}

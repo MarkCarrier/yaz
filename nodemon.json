@@ -5,7 +5,7 @@
   "execMap": {
     "js": "node"
   },
-  "watch": ["server"],
+  "watch": ["server", "utils"],
   "env": {
     "NODE_ENV": "development"
   },

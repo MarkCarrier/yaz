@@ -11,6 +11,17 @@ const getUserDirectory = (userId) => `./data/repos/${userId}`
 const getRepoDirectory = (userId, repoKey) =>
   `${getUserDirectory(userId)}/${repoKey}`
 
+const createFetchOptions = (githubToken) => ({
+  callbacks: {
+    certificateCheck: function () {
+      return 0
+    },
+    credentials: function () {
+      return NodeGit.Cred.userpassPlaintextNew(githubToken, 'x-oauth-basic')
+    }
+  }
+})
+
 export async function cloneGitRepo(userId, repoKey, cloneUrl, githubToken) {
   const userDirectoryPath = getUserDirectory(userId)
   await createFolderIfDoesNotExist(userDirectoryPath)
@@ -23,16 +34,7 @@ export async function cloneGitRepo(userId, repoKey, cloneUrl, githubToken) {
   }
 
   const cloneOptions = {}
-  cloneOptions.fetchOpts = {
-    callbacks: {
-      certificateCheck: function () {
-        return 0
-      },
-      credentials: function () {
-        return NodeGit.Cred.userpassPlaintextNew(githubToken, 'x-oauth-basic')
-      }
-    }
-  }
+  cloneOptions.fetchOpts = createFetchOptions(githubToken)
   const repo = await NodeGit.Clone.clone(
     cloneUrl,
     repoDirectoryPath,
@@ -53,11 +55,47 @@ export async function indexRepoFolder(userId, repoKey) {
     repoKey,
     indexTime: Math.round(DateTime.now().setZone('utc').toSeconds()),
     commitHash,
-    files: allFiles.reduce((acc,next) => {
+    files: allFiles.reduce((acc, next) => {
       acc[next.key] = next
       return acc
-    },{})
+    }, {})
   }
+}
+
+export async function updateRepoFolder(userId, repoKey, githubToken) {
+  const folderPath = getRepoDirectory(userId, repoKey)
+  const repo = await NodeGit.Repository.open(folderPath)
+  const fromCommit = await repo.getHeadCommit()
+  const fromTree = await fromCommit.getTree()
+  console.log(
+    `Updating ${repoKey} (@${userId}) from commit #${fromCommit.sha()}`
+  )
+
+  const fetchOptions = createFetchOptions(githubToken)
+
+  await repo.fetchAll(fetchOptions)
+  console.log(`Fetched`)
+  await repo.mergeBranches('master', 'refs/remotes/origin/master')
+  console.log(`Merged`)
+  const toCommit = await repo.getHeadCommit()
+  const toTree = await toCommit.getTree()
+  console.log(`Now at commit #${toCommit.sha()}`)
+
+  if (fromCommit.sha() !== toCommit.sha()) {
+    const diff = await toTree.diff(fromTree)
+    const patchList = await diff.patches()
+    patchList.forEach((patch) => {
+      const oldPath = patch.oldFile().path()
+      const newPath = patch.newFile().path()
+      console.log(`Modified: "${newPath}"`)
+      if (oldPath != newPath) {
+        console.log(`  (was "${oldPath}" before)`)
+      }
+    })
+    return patchList
+  }
+
+  return null
 }
 
 async function getAllFiles(dir, excludePath, exludeHiddenFiles = true) {

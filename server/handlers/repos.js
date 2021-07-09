@@ -1,7 +1,8 @@
 import GitHub from 'github-api'
-import { cloneGitRepo, indexRepoFolder } from '../utils/git-repos'
+import { cloneGitRepo, indexRepoFolder } from '../../utils/git-repos'
 
 export async function buildRepoHandlers(accountStore) {
+  
   async function handleGetAvailableRepos(ctx) {
     const github = new GitHub({
       token: ctx.session.githubToken

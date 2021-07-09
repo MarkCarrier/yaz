@@ -1,7 +1,7 @@
 import Router from 'koa-router'
-import { buildAuthHandlers } from './auth'
-import { buildRepoHandlers } from './repos'
-import { buildDocHandlers } from './docs'
+import { buildAuthHandlers } from './handlers/auth'
+import { buildRepoHandlers } from './handlers/repos'
+import { buildDocHandlers } from './handlers/docs'
 
 export async function buildAppRouter(accountStore) {
   const router = new Router()
@@ -19,8 +19,8 @@ export async function buildAppRouter(accountStore) {
 
   const docHandlers = await buildDocHandlers(accountStore)
   router.get('/d/:userId/:repoKey/:docKey', docHandlers.handleGetDoc)
-  router.get('/api/doc/:userId/:repoKey/:docKey/page', docHandlers.handleGetDocPage)
   router.get('/api/doc/:userId/:repoKey/docs', docHandlers.handleGetDocList)
+  router.get('/api/doc/:userId/:repoKey/:docKey/page', docHandlers.handleGetDocPage)  
 
   return router
 }

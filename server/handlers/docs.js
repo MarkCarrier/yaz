@@ -6,6 +6,7 @@ import fm from 'front-matter'
 import stream from 'stream'
 import { performance } from 'perf_hooks'
 import yaml from 'js-yaml'
+import { updateRepoFolder, indexRepoFolder } from '../../utils/git-repos'
 
 function buildLineStream() {
   const lineStream = new stream.Transform({ objectMode: true })
@@ -43,7 +44,7 @@ async function getPageLines(
   filename,
   startPos = 0,
   firstLinePrefix,
-  maxLines = 450,  
+  maxLines = 450,
   pageSize = 10 * 1024
 ) {
   return new Promise((resolve, reject) => {
@@ -77,7 +78,7 @@ async function getPageLines(
       //console.log(`Stream close fired. Read ${lineStream._totalBytes || 0} bytes`)
 
       const reachedEnd = lineStream._totalBytes < pageSize
-      if(reachedEnd) pageLines.push(lineStream._partialLine)
+      if (reachedEnd) pageLines.push(lineStream._partialLine)
 
       resolve({
         pageLines,
@@ -100,15 +101,41 @@ async function getPageLines(
 
 export async function buildDocHandlers(accountStore) {
   async function handleGetDocPage(ctx) {
+    const startTS = performance.now()
     const { userId, repoKey, docKey } = ctx.params
     const { numLines, startAt, nextLineStart } = ctx.query
 
     if (userId !== ctx.session.yazUserId) ctx.throw(401, 'Nope nope nope')
 
-    const fileIndex = await accountStore.getItem(
-      `yaz-${ctx.session.yazUserId}`,
-      `repo-index-${repoKey}`
-    )
+    let fileIndex
+    if (!startAt && ctx.session.githubToken) {
+      console.log(`Updating repo`)
+      const diffs = await updateRepoFolder(
+        userId,
+        repoKey,
+        ctx.session.githubToken
+      )
+      if (diffs) {
+        console.log(`Updating index`)
+        fileIndex = await indexRepoFolder(userId, repoKey)
+        accountStore.putItem(
+          `yaz-${ctx.session.yazUserId}`,
+          `repo-index-${repoKey}`,
+          fileIndex
+        )
+      }
+    }
+    const updateTS = performance.now()
+    console.log(`TIMER: Update, ${Math.ceil(updateTS - startTS)}ms`)
+
+    if (!fileIndex) {
+      fileIndex = await accountStore.getItem(
+        `yaz-${ctx.session.yazUserId}`,
+        `repo-index-${repoKey}`
+      )
+    }
+    const indexTS = performance.now()
+    console.log(`TIMER: Index, ${Math.ceil(indexTS - updateTS)}ms`)
 
     if (!fileIndex) ctx.throw(400, 'No repo')
 
@@ -124,25 +151,37 @@ export async function buildDocHandlers(accountStore) {
       start = parseInt(startAt)
     }
 
-    const startTimer = performance.now()
+    const readyTimer = performance.now()
     let pageLines = await getPageLines(
       `./data/repos/${userId}/${repoKey}/${fileInfo.fileName}`,
       start,
-      nextLineStart || ''      
+      nextLineStart || ''
     )
-    const endTimer = performance.now()
-    console.log(`Read ${pageLines.pageLines.length} lines in ${endTimer - startTimer}ms`)
+    const pageTimer = performance.now()
+    console.log(
+      `TIMER: Page, Read ${pageLines.pageLines.length} lines in ${Math.ceil(
+        pageTimer - readyTimer
+      )}ms`
+    )
 
     let frontmatter = null
-    if(start === 0 && pageLines.pageLines.length && pageLines.pageLines[0].trim() === '---') {
+    if (
+      start === 0 &&
+      pageLines.pageLines.length &&
+      pageLines.pageLines[0].trim() === '---'
+    ) {
       frontmatter = extractFrontMatter(pageLines.pageLines)
     } else {
       console.log(`No front matter`)
     }
+    const fmTS = performance.now()
+    console.log(`TIMER: frontmatter: ${Math.ceil(fmTS - pageTimer)}ms`)
 
-    const next = pageLines.nextLineStart ? `/api/doc/${userId}/${repoKey}/${docKey}/page?startAt=${
-      pageLines.endsAt
-    }&nextLineStart=${encodeURIComponent(pageLines.nextLineStart)}` : null
+    const next = pageLines.nextLineStart
+      ? `/api/doc/${userId}/${repoKey}/${docKey}/page?startAt=${
+          pageLines.endsAt
+        }&nextLineStart=${encodeURIComponent(pageLines.nextLineStart)}`
+      : null
 
     ctx.body = {
       file: fileInfo,
@@ -150,19 +189,25 @@ export async function buildDocHandlers(accountStore) {
       lines: pageLines.pageLines,
       next
     }
+    const endTimer = performance.now()
+    console.log(`TIMER: After Frontmatter: ${Math.ceil(endTimer - fmTS)}ms`)
+    console.log(`TIMER: Handler, ${Math.ceil(endTimer - startTS)}ms`)
   }
 
   function extractFrontMatter(lines) {
-
-    const startStopLines = lines.map((line, idx) => ({ n: idx, line})).filter(l => l.line.trim() === '---')
-    if(startStopLines.length < 2) {
+    const startStopLines = lines
+      .map((line, idx) => ({ n: idx, line }))
+      .filter((l) => l.line.trim() === '---')
+    if (startStopLines.length < 2) {
       console.error(`Front matter end not found`)
       return null
     }
 
-    console.log(`Discovered front matter from ${startStopLines[0].n} to ${startStopLines[1].n}`)
+    console.log(
+      `Discovered front matter from ${startStopLines[0].n} to ${startStopLines[1].n}`
+    )
 
-    const frontMatter = lines.slice(0, startStopLines[1].n).join("\n")
+    const frontMatter = lines.slice(0, startStopLines[1].n).join('\n')
     const frontMatterData = yaml.load(frontMatter)
     return frontMatterData
   }
