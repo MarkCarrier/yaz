@@ -8,6 +8,14 @@ export async function buildAuthHandlers(accountStore) {
   const githubLoginRedirectUrl = 'http://localhost:4411/login/github/callback'
   const scopes = ['repo', 'admin:repo_hook', 'user']
 
+  async function ensureIsAuthenticated(ctx, next) {
+    if(!ctx.session.yazUserId) {
+      ctx.throw(401, "Please log in")
+    } else {
+      return next()
+    }
+  }
+
   async function handleGitHubLogin(ctx) {
     const state = nanoid()
     ctx.session = {
@@ -176,6 +184,7 @@ export async function buildAuthHandlers(accountStore) {
   }
 
   return {
+    ensureIsAuthenticated,
     handleGitHubLogin,
     handleGitHubLoginCallback,
     handleDebug,
