@@ -1,0 +1,9 @@
+Dockerfile
+**/.git
+**/node_modules
+**/build
+**/out
+**/dist
+**/data
+**/.vscode
+**/.env
