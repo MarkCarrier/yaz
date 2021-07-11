@@ -5,7 +5,8 @@ export async function buildAuthHandlers(accountStore) {
   const githubAuthUrl = 'https://github.com/login/oauth'
   const GITHUB_CLIENT_ID = process.env.GITHUB_CLIENT_ID
   const GITHUB_CLIENT_SECRET = process.env.GITHUB_CLIENT_SECRET
-  const githubLoginRedirectUrl = 'http://localhost:4411/login/github/callback'
+  const APP_URL = process.env.APP_URL
+  const githubLoginRedirectUrl = `${APP_URL}/login/github/callback`
   const scopes = ['repo', 'admin:repo_hook', 'user']
 
   async function ensureIsAuthenticated(ctx, next) {

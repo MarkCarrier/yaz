@@ -37,26 +37,22 @@ export async function buildAppRouter(accountStore) {
     docHandlers.handleGetDocList
   )
   router.get(
-    '/api/doc/:userId/:repoKey/:docKey/page',
-    authHandlers.ensureIsAuthenticated,
+    '/api/doc/:userId/:repoKey/:docKey/page',    
     docHandlers.handleGetDocPage
   )
 
   const clientAppHandlers = await createClientAppHandlers()
   router.get(
     '/app/static/(.*)',
-    authHandlers.ensureIsAuthenticated,
     clientAppHandlers.handleGetApp
   )
 
   router.get(
     '/app/assets/(.*)',
-    authHandlers.ensureIsAuthenticated,
     clientAppHandlers.handleGetApp
   )
   router.get(
     '/app(.*)',
-    authHandlers.ensureIsAuthenticated,
     clientAppHandlers.handleGetApp
   )
 

@@ -24,8 +24,8 @@ function buildLineStream() {
     var objLines = strData.split('\n')
     this._partialLine = objLines.splice(objLines.length - 1, 1)[0]
     console.log(`New partial line = "${this._partialLine}"`)
-    
-    this.push({ lines: objLines} )
+
+    this.push({ lines: objLines })
     //console.log(`Read ${objLines.length} lines`)
 
     return cb(null, chunk + '\n')
@@ -67,8 +67,7 @@ async function getPageLines(
           lines = [completedFirstLine, ...lines.slice(1)]
         }
 
-        if(lines.lines)
-        pageLines = pageLines.concat(lines.lines)
+        if (lines.lines) pageLines = pageLines.concat(lines.lines)
 
         if (pageLines.length >= maxLines) {
           readStream.destroy()
@@ -106,9 +105,16 @@ export async function buildDocHandlers(accountStore) {
   async function handleGetDocPage(ctx) {
     const startTS = performance.now()
     const { userId, repoKey, docKey } = ctx.params
-    const { numLines, startAt, nextLineStart } = ctx.query
+    const { startAt, nextLineStart } = ctx.query
 
-    if (userId !== ctx.session.yazUserId) ctx.throw(401, 'Nope nope nope')
+    let isAuthorizedToView = false
+    if (userId === ctx.session.yazUserId) {
+      isAuthorizedToView = true
+    }
+
+    if (!isAuthorizedToView) {
+      ctx.throw(401, 'Nope nope nope')
+    }
 
     let fileIndex
     if (!startAt && ctx.session.githubToken) {
