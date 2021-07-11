@@ -1,4 +1,4 @@
-FROM node:12-buster-slim
+FROM node:14.17-buster-slim
 
 # NodeGit dependencies
 RUN apt-get update && apt-get install -y libgssapi-krb5-2
