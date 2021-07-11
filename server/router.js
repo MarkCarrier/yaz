@@ -2,6 +2,7 @@ import Router from '@koa/router'
 import { buildAuthHandlers } from './handlers/auth'
 import { buildRepoHandlers } from './handlers/repos'
 import { buildDocHandlers } from './handlers/docs'
+import { createClientAppHandlers } from './handlers/client-app'
 
 export async function buildAppRouter(accountStore) {
   const router = new Router()
@@ -39,6 +40,24 @@ export async function buildAppRouter(accountStore) {
     '/api/doc/:userId/:repoKey/:docKey/page',
     authHandlers.ensureIsAuthenticated,
     docHandlers.handleGetDocPage
+  )
+
+  const clientAppHandlers = await createClientAppHandlers()
+  router.get(
+    '/app/static/(.*)',
+    authHandlers.ensureIsAuthenticated,
+    clientAppHandlers.handleGetApp
+  )
+
+  router.get(
+    '/app/assets/(.*)',
+    authHandlers.ensureIsAuthenticated,
+    clientAppHandlers.handleGetApp
+  )
+  router.get(
+    '/app(.*)',
+    authHandlers.ensureIsAuthenticated,
+    clientAppHandlers.handleGetApp
   )
 
   return router
