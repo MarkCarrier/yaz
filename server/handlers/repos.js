@@ -1,5 +1,9 @@
 import GitHub from 'github-api'
 import { cloneGitRepo, indexRepoFolder } from '../../utils/git-repos'
+import { customAlphabet } from 'nanoid'
+import { nolookalikes } from 'nanoid-dictionary'
+
+const nanoid = customAlphabet(nolookalikes, 7)
 
 export async function buildRepoHandlers(accountStore) {
   
@@ -15,9 +19,10 @@ export async function buildRepoHandlers(accountStore) {
     ctx.body = {
       githubRepos: myRepos.data.reduce((acc, next) => {
         const repoId =`gh-${next.id}`
+        const repoKey = nanoid()
         acc[next.full_name] = { 
           clone_url: next.clone_url,
-          connect_link: `/api/repo/connection/?repoId=${encodeURIComponent(repoId)}&repoType=github&clone_url=${encodeURIComponent(next.clone_url)}`,
+          connect_link: `/api/repo/connection/?repoKey=${repoKey}&repoReference=${encodeURIComponent(repoId)}&repoType=github&clone_url=${encodeURIComponent(next.clone_url)}`,
           repoId: repoId
          }
         return acc

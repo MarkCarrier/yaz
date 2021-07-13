@@ -1,5 +1,8 @@
-import { nanoid } from 'nanoid'
 import axios from 'axios'
+import { customAlphabet } from 'nanoid'
+import { nolookalikes } from 'nanoid-dictionary'
+
+const nanoid = customAlphabet(nolookalikes, 32)
 
 export async function buildAuthHandlers(accountStore) {
   const githubAuthUrl = 'https://github.com/login/oauth'
